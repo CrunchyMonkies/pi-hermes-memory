@@ -2,7 +2,8 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 import { StringEnum } from "@earendil-works/pi-ai";
 import { DatabaseManager } from '../store/db.js';
-import { searchMemories, getMemoryStats } from '../store/sqlite-memory-store.js';
+import { asMemorySearcher } from '../store/backend.js';
+import type { MemorySearcher } from '../store/backend.js';
 import type { MemoryCategory } from '../types.js';
 
 interface SearchResult {
@@ -12,7 +13,11 @@ interface SearchResult {
   output?: string;
 }
 
-export function registerMemorySearchTool(pi: ExtensionAPI, dbManager: DatabaseManager): void {
+export function registerMemorySearchTool(
+  pi: ExtensionAPI,
+  source: DatabaseManager | MemorySearcher,
+): void {
+  const searcher = asMemorySearcher(source);
   pi.registerTool({
     name: 'memory_search',
     label: 'Memory Search',
@@ -50,13 +55,13 @@ Returns matching memory entries with project context and dates.`,
         return { content: [{ type: 'text' as const, text: result.message! }], details: result };
       }
 
-      const stats = getMemoryStats(dbManager);
-      if (stats.total === 0) {
+      const total = await searcher.count();
+      if (total === 0) {
         const result: SearchResult = { success: false, message: 'No memories in extended store yet. Use the memory tool with add action to store memories.' };
         return { content: [{ type: 'text' as const, text: result.message! }], details: result };
       }
 
-      const results = searchMemories(dbManager, query, { project, target, category, limit });
+      const results = await searcher.search(query, { project, target, category, limit });
 
       if (results.length === 0) {
         const result: SearchResult = { success: true, count: 0, message: `No memories found matching "${query}". Try a different search term or broader query.` };

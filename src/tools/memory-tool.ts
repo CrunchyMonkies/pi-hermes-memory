@@ -7,7 +7,7 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 import { StringEnum } from "@earendil-works/pi-ai";
-import { MemoryStore } from "../store/memory-store.js";
+import type { MemoryBackend } from "../store/backend.js";
 import { DatabaseManager } from "../store/db.js";
 import {
   formatFailureMemoryContent,
@@ -187,8 +187,8 @@ async function syncEvictionsFromSqlite(
 
 export function registerMemoryTool(
   pi: ExtensionAPI,
-  store: MemoryStore,
-  projectStore: MemoryStore | null,
+  store: MemoryBackend,
+  projectStore: MemoryBackend | null,
   dbManager: DatabaseManager | null = null,
   projectName?: string | null,
 ): void {

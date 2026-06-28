@@ -8,7 +8,7 @@
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { MemoryStore } from "../store/memory-store.js";
+import type { MemoryBackend } from "../store/backend.js";
 import { CONSOLIDATION_PROMPT, ENTRY_DELIMITER } from "../constants.js";
 import type { ConsolidationResult, MemoryConfig } from "../types.js";
 import { execChildPrompt } from "./pi-child-process.js";
@@ -16,7 +16,7 @@ import { execChildPrompt } from "./pi-child-process.js";
 type MemoryTarget = "memory" | "user" | "failure";
 type ToolMemoryTarget = MemoryTarget | "project";
 
-function entriesForTarget(store: MemoryStore, target: MemoryTarget): string[] {
+async function entriesForTarget(store: MemoryBackend, target: MemoryTarget): Promise<string[]> {
   if (target === "user") return store.getUserEntries();
   if (target === "failure") return store.getAllFailureEntries();
   return store.getMemoryEntries();
@@ -45,14 +45,14 @@ function describeConsolidationFailure(
 
 export async function triggerConsolidation(
   pi: ExtensionAPI,
-  store: MemoryStore,
+  store: MemoryBackend,
   target: MemoryTarget,
   signal?: AbortSignal,
   timeoutMs: number = 60000,
   toolTarget: ToolMemoryTarget = target,
   llmConfig: Pick<MemoryConfig, "llmModelOverride" | "llmThinkingOverride"> = {},
 ): Promise<ConsolidationResult> {
-  const entries = entriesForTarget(store, target);
+  const entries = await entriesForTarget(store, target);
   const currentContent = entries.join(ENTRY_DELIMITER);
 
   const prompt = [
@@ -91,9 +91,9 @@ export async function triggerConsolidation(
  */
 export function registerConsolidateCommand(
   pi: ExtensionAPI,
-  store: MemoryStore,
+  store: MemoryBackend,
   timeoutMs: number = 60000,
-  projectStore: MemoryStore | null = null,
+  projectStore: MemoryBackend | null = null,
   projectName?: string | null,
   llmConfig: Pick<MemoryConfig, "llmModelOverride" | "llmThinkingOverride"> = {},
 ): void {
@@ -104,7 +104,7 @@ export function registerConsolidateCommand(
       const results: string[] = [];
       const targets: Array<{
         label: string;
-        store: MemoryStore;
+        store: MemoryBackend;
         target: MemoryTarget;
         toolTarget: ToolMemoryTarget;
       }> = [
@@ -133,7 +133,7 @@ export function registerConsolidateCommand(
       }
 
       for (const item of targets) {
-        const entries = entriesForTarget(item.store, item.target);
+        const entries = await entriesForTarget(item.store, item.target);
 
         if (entries.length === 0) {
           results.push(`${item.label}: (empty, nothing to consolidate)`);

@@ -4,14 +4,14 @@
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { MemoryStore } from "../store/memory-store.js";
+import type { MemoryBackend } from "../store/backend.js";
 import { resolveMemoryPolicyPrompt } from "../prompt-context.js";
 import type { MemoryConfig } from "../types.js";
 
 export function registerPreviewContextCommand(
   pi: ExtensionAPI,
-  store: MemoryStore,
-  projectStore: MemoryStore | null,
+  store: MemoryBackend,
+  projectStore: MemoryBackend | null,
   projectName: string,
   config: Pick<MemoryConfig, "memoryMode" | "memoryPolicyStyle" | "memoryPolicyCustomText"> = { memoryMode: "policy-only" },
 ): void {
@@ -44,8 +44,8 @@ export function registerPreviewContextCommand(
         return;
       }
 
-      const memoryBlock = store.formatForSystemPrompt();
-      const projectBlock = projectStore ? projectStore.formatProjectBlock(projectName) : "";
+      const memoryBlock = await store.formatForSystemPrompt();
+      const projectBlock = projectStore ? await projectStore.formatProjectBlock(projectName) : "";
 
       const lines: string[] = [];
       lines.push("");

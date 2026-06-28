@@ -5,7 +5,7 @@
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { MemoryStore } from "../store/memory-store.js";
+import type { MemoryBackend } from "../store/backend.js";
 import { FLUSH_PROMPT } from "../constants.js";
 import type { MemoryConfig } from "../types.js";
 import { collectMessageParts } from "./message-parts.js";
@@ -13,8 +13,8 @@ import { execChildPrompt } from "./pi-child-process.js";
 
 export function setupSessionFlush(
   pi: ExtensionAPI,
-  store: MemoryStore,
-  projectStore: MemoryStore | null,
+  store: MemoryBackend,
+  projectStore: MemoryBackend | null,
   config: MemoryConfig,
 ): void {
   let userTurnCount = 0;

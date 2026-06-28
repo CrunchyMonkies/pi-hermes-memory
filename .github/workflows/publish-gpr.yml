@@ -1,10 +1,14 @@
 name: Publish to GitHub Packages
 
-# Publishes @crunchymonkies/pi-hermes-memory to GitHub Packages on every
-# version tag push (e.g. `git tag v0.8.0 && git push origin v0.8.0`).
-# The published version comes from package.json — bump it before tagging.
+# Auto-publishes @crunchymonkies/pi-hermes-memory to GitHub Packages:
+#   - push to `dev`  → prerelease build `<version>-dev.<run_number>` under the
+#                      `dev` dist-tag (every push publishes; versions are unique
+#                      so they never collide).
+#   - push a `v*` tag → stable release using the exact package.json version under
+#                      the default `latest` dist-tag.
 on:
   push:
+    branches: [dev]
     tags:
       - "v*"
 
@@ -32,7 +36,23 @@ jobs:
       - name: Run tests
         run: npm test
 
-      - name: Publish
+      # Dev branch: stamp a unique prerelease version so each push publishes
+      # without "version already exists" errors.
+      - name: Set dev prerelease version
+        if: github.ref_type == 'branch'
+        run: |
+          base="$(node -p "require('./package.json').version")"
+          npm version --no-git-tag-version --allow-same-version "${base}-dev.${{ github.run_number }}"
+
+      - name: Publish dev prerelease
+        if: github.ref_type == 'branch'
+        run: npm publish --tag dev
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Tag push: publish the stable version as-is.
+      - name: Publish release
+        if: github.ref_type == 'tag'
         run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

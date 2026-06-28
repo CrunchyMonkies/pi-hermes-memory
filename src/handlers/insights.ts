@@ -3,15 +3,15 @@
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { MemoryStore } from "../store/memory-store.js";
+import type { MemoryBackend } from "../store/backend.js";
 
-export function registerInsightsCommand(pi: ExtensionAPI, store: MemoryStore, projectStore: MemoryStore | null, projectName: string): void {
+export function registerInsightsCommand(pi: ExtensionAPI, store: MemoryBackend, projectStore: MemoryBackend | null, projectName: string): void {
   pi.registerCommand("memory-insights", {
     description: "Show what's stored in persistent memory",
     handler: async (_args, ctx) => {
-      const memoryEntries = store.getMemoryEntries();
-      const userEntries = store.getUserEntries();
-      const projectEntries = projectStore ? projectStore.getMemoryEntries() : null;
+      const memoryEntries = await store.getMemoryEntries();
+      const userEntries = await store.getUserEntries();
+      const projectEntries = projectStore ? await projectStore.getMemoryEntries() : null;
 
       const lines: string[] = [];
       lines.push("");

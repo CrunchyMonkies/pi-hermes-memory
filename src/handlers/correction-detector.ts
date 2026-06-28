@@ -9,7 +9,7 @@
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { MemoryStore } from "../store/memory-store.js";
+import type { MemoryBackend } from "../store/backend.js";
 import { DatabaseManager } from "../store/db.js";
 import {
   formatFailureMemoryContent,
@@ -124,8 +124,8 @@ export function isCorrection(text: string, config?: CorrectionPatternConfig): bo
 
 export function setupCorrectionDetector(
   pi: ExtensionAPI,
-  store: MemoryStore,
-  projectStore: MemoryStore | null,
+  store: MemoryBackend,
+  projectStore: MemoryBackend | null,
   config: MemoryConfig,
   dbManager: DatabaseManager | null = null,
   projectName?: string | null,
@@ -178,9 +178,9 @@ export function setupCorrectionDetector(
       // Only include last few exchanges (correction context is recent)
       const recentParts = parts.slice(-6);
 
-      const currentMemory = store.getMemoryEntries().join(ENTRY_DELIMITER);
-      const currentUser = store.getUserEntries().join(ENTRY_DELIMITER);
-      const currentProject = projectStore ? projectStore.getMemoryEntries().join(ENTRY_DELIMITER) : null;
+      const currentMemory = (await store.getMemoryEntries()).join(ENTRY_DELIMITER);
+      const currentUser = (await store.getUserEntries()).join(ENTRY_DELIMITER);
+      const currentProject = projectStore ? (await projectStore.getMemoryEntries()).join(ENTRY_DELIMITER) : null;
 
       const prompt = [
         CORRECTION_SAVE_PROMPT,

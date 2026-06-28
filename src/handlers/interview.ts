@@ -7,17 +7,17 @@
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { MemoryStore } from "../store/memory-store.js";
+import type { MemoryBackend } from "../store/backend.js";
 import { INTERVIEW_PROMPT } from "../constants.js";
 
 export function registerInterviewCommand(
   pi: ExtensionAPI,
-  store: MemoryStore,
+  store: MemoryBackend,
 ): void {
   pi.registerCommand("memory-interview", {
     description: "Answer a few questions to pre-fill your user profile so the agent remembers you across sessions",
     handler: async (_args, ctx) => {
-      const userEntries = store.getUserEntries();
+      const userEntries = await store.getUserEntries();
 
       if (userEntries.length > 0) {
         // User already has profile entries — acknowledge and offer choices

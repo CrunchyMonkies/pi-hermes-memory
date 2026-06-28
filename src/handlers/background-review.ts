@@ -8,7 +8,7 @@
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { MemoryStore } from "../store/memory-store.js";
+import type { MemoryBackend } from "../store/backend.js";
 import { COMBINED_REVIEW_PROMPT } from "../constants.js";
 import type { MemoryConfig } from "../types.js";
 import { applyRecentMessageLimit, collectMessageParts } from "./message-parts.js";
@@ -16,8 +16,8 @@ import { execChildPrompt } from "./pi-child-process.js";
 
 export function setupBackgroundReview(
   pi: ExtensionAPI,
-  store: MemoryStore,
-  projectStore: MemoryStore | null,
+  store: MemoryBackend,
+  projectStore: MemoryBackend | null,
   config: MemoryConfig,
 ): void {
   let turnsSinceReview = 0;
@@ -82,9 +82,9 @@ export function setupBackgroundReview(
     }
     const parts = applyRecentMessageLimit(allParts, config.reviewRecentMessages);
 
-    const currentMemory = store.getMemoryEntries().join("\n§\n");
-    const currentUser = store.getUserEntries().join("\n§\n");
-    const currentProject = projectStore ? projectStore.getMemoryEntries().join("\n§\n") : null;
+    const currentMemory = (await store.getMemoryEntries()).join("\n§\n");
+    const currentUser = (await store.getUserEntries()).join("\n§\n");
+    const currentProject = projectStore ? (await projectStore.getMemoryEntries()).join("\n§\n") : null;
 
     const reviewPrompt = [
       COMBINED_REVIEW_PROMPT,

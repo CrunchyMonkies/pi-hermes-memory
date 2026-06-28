@@ -136,7 +136,7 @@ describe("setupBackgroundReview", () => {
     notifyCalls = [];
   });
 
-  it("increments user turn count on message_end for user messages", () => {
+  it("increments user turn count on message_end for user messages", async () => {
     const pi = createMockPi();
     setupBackgroundReview(pi, mockStore, null, defaultConfig);
 
@@ -150,6 +150,10 @@ describe("setupBackgroundReview", () => {
     for (let i = 0; i < 10; i++) {
       fireTurnEnd();
     }
+
+    // Review dispatch is async (the backend read of current memory may be a
+    // network call), so flush pending microtasks before asserting.
+    await new Promise((resolve) => setImmediate(resolve));
 
     // exec should have been called since we have 3 user turns and 10 turn_end events
     assert.ok(execCalls.length > 0, "exec should be called with 3 user turns and 10 turn_end events");

@@ -476,6 +476,55 @@ Create `~/.pi/agent/hermes-memory-config.json`:
 | `flushOnShutdown` | `true` | Flush memories when session ends |
 | `flushMinTurns` | `6` | Minimum turns before flush triggers |
 | `flushRecentMessages` | `0` | Recent messages included in session flush (`0` = all) |
+| `memoryBackend` | `builtin` | Persistence backend for memory entries: `builtin` (Markdown + SQLite) or `mem0` (see below) |
+| `mem0` | unset | Mem0 backend settings (used when `memoryBackend` is `mem0`) — see [Mem0 Backend](#mem0-backend) |
+
+## Mem0 Backend
+
+By default memory is stored locally as Markdown + SQLite (`memoryBackend: "builtin"`). Set
+`memoryBackend: "mem0"` to store and search memory through [Mem0](https://mem0.ai) instead. The
+`memory` tool (add / replace / remove) and `memory_search` are routed to Mem0; the built-in
+SQLite session search is unaffected.
+
+Install the SDK once: `npm install mem0ai`.
+
+**Hosted Platform** (get a key at app.mem0.ai):
+
+```json
+{
+  "memoryBackend": "mem0",
+  "mem0": { "apiKey": "m0-...", "userId": "pi-hermes", "infer": false }
+}
+```
+
+The key may instead be supplied via the `MEM0_API_KEY` environment variable.
+
+**Self-hosted Platform server** — point `host` at your server; the API key becomes optional:
+
+```json
+{ "memoryBackend": "mem0", "mem0": { "host": "http://localhost:8000" } }
+```
+
+**OSS (fully local, no API key)** — runs the `mem0ai/oss` engine in-process; pass its vector
+store / embedder / LLM config under `oss`:
+
+```json
+{ "memoryBackend": "mem0", "mem0": { "mode": "oss", "oss": { /* vector store, embedder, llm */ } } }
+```
+
+| `mem0` field | Default | Description |
+|---|---|---|
+| `mode` | `platform` | `platform` (hosted/self-hosted REST API) or `oss` (local `mem0ai/oss` engine) |
+| `apiKey` | unset | Platform API key; falls back to `MEM0_API_KEY`. Optional for self-hosted/OSS |
+| `host` | `https://api.mem0.ai` | Platform API host; set to a self-hosted server URL to run without the hosted service |
+| `userId` | `pi-hermes` | Namespace (Mem0 `user_id`) entries are stored under |
+| `infer` | `false` | `false` stores entries verbatim; `true` lets Mem0's LLM re-extract facts |
+| `oss` | unset | Config object passed to the `mem0ai/oss` Memory constructor when `mode` is `oss` |
+
+If `mem0` is selected but not usable (hosted mode without a key, no self-hosted host, and not OSS),
+the extension logs a warning and falls back to the built-in store so startup never fails. Memory
+consolidation and char limits do not apply to Mem0 (it is unbounded and deduplicates server-side).
+The content scanner still guards every write, regardless of backend.
 
 ## Where Data Lives
 

@@ -24,7 +24,7 @@
 
 import * as path from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { MemoryStore } from "./store/memory-store.js";
+import { createMemoryBackends } from "./store/backend-factory.js";
 import { SkillStore } from "./store/skill-store.js";
 import { DatabaseManager } from "./store/db.js";
 import { indexSession, upsertSessionFileMetadata } from "./store/session-indexer.js";
@@ -97,7 +97,6 @@ export default function (pi: ExtensionAPI) {
   const shouldMigrateExtensionRoot = !configuredMemoryDir || pointsToLegacyMemoryDir;
   let extensionRootMigrated = false;
 
-  const store = new MemoryStore({ ...config, memoryDir: globalDir });
   const project = detectProject(config.projectsMemoryDir);
   const projectName = project.name ?? "";
   const skillStore = new SkillStore({
@@ -130,12 +129,20 @@ export default function (pi: ExtensionAPI) {
     // Best-effort only: failed SQLite backfill should not block extension startup.
   }
 
-  // Detect project from cwd using shared helper
+  // Detect project from cwd using shared helper.
+  // Select the memory backend (built-in Markdown+SQLite, or Mem0) from config.
   // Project-scoped store: ~/.pi/agent/<projectsMemoryDir>/<project_name>/
-  const projectConfig = project.memoryDir
-    ? { ...config, memoryCharLimit: config.projectCharLimit, memoryDir: project.memoryDir }
-    : { ...config, memoryDir: undefined };
-  const projectStore = project.memoryDir ? new MemoryStore(projectConfig) : null;
+  const backends = createMemoryBackends({
+    config,
+    globalDir,
+    dbManager,
+    projectMemoryDir: project.memoryDir ?? undefined,
+    projectName,
+  });
+  const store = backends.store;
+  const projectStore = backends.projectStore;
+  const memorySearcher = backends.searcher;
+  const toolDbManager = backends.toolDbManager;
 
   // ── 1. Load memory from disk on session start ──
   pi.on("session_start", async (_event, ctx) => {
@@ -182,7 +189,8 @@ export default function (pi: ExtensionAPI) {
   });
 
   // ── 3. Register the memory tool (with project store + SQLite sync) ──
-  registerMemoryTool(pi, store, projectStore, dbManager, projectName);
+  // toolDbManager is null for the Mem0 backend, which disables SQLite mirroring.
+  registerMemoryTool(pi, store, projectStore, toolDbManager, projectName);
 
   // ── 4. Register the skill tool ──
   registerSkillTool(pi, skillStore);
@@ -194,19 +202,24 @@ export default function (pi: ExtensionAPI) {
   setupSessionFlush(pi, store, projectStore, config);
 
   // ── 7. Setup auto-consolidation (inject consolidator into stores) ──
-  store.setConsolidator(async (target, signal) => {
-    return triggerConsolidation(pi, store, target, signal, config.consolidationTimeoutMs, target, config);
-  });
-  if (projectStore) {
-    projectStore.setConsolidator(async (target, signal) => {
-      const toolTarget = target === "memory" ? "project" : target;
-      return triggerConsolidation(pi, projectStore, target, signal, config.consolidationTimeoutMs, toolTarget, config);
+  // Consolidation is a char-limit concern of the built-in store; Mem0 is
+  // unbounded and deduplicates server-side, so it is skipped for that backend.
+  if (backends.kind === "builtin") {
+    store.setConsolidator(async (target, signal) => {
+      return triggerConsolidation(pi, store, target, signal, config.consolidationTimeoutMs, target, config);
     });
+    if (projectStore) {
+      projectStore.setConsolidator(async (target, signal) => {
+        const toolTarget = target === "memory" ? "project" : target;
+        return triggerConsolidation(pi, projectStore, target, signal, config.consolidationTimeoutMs, toolTarget, config);
+      });
+    }
+    registerConsolidateCommand(pi, store, config.consolidationTimeoutMs, projectStore, projectName, config);
   }
-  registerConsolidateCommand(pi, store, config.consolidationTimeoutMs, projectStore, projectName, config);
 
   // ── 8. Setup correction detection ──
-  setupCorrectionDetector(pi, store, projectStore, config, dbManager, projectName);
+  // toolDbManager is null for Mem0 (correction failures persist via the backend).
+  setupCorrectionDetector(pi, store, projectStore, config, toolDbManager, projectName);
 
   // ── 9. Register commands ──
   registerInsightsCommand(pi, store, projectStore, projectName);
@@ -226,7 +239,7 @@ export default function (pi: ExtensionAPI) {
 
   // ── 11. SQLite session search + extended memory ──
   registerSessionSearchTool(pi, dbManager, config.sessionSearch ?? { variant: "legacy" });
-  registerMemorySearchTool(pi, dbManager);
+  registerMemorySearchTool(pi, memorySearcher);
   registerIndexSessionsCommand(pi);
 
   // ── 12. Auto-index session on shutdown ──

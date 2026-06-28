@@ -1,0 +1,38 @@
+name: Publish to GitHub Packages
+
+# Publishes @crunchymonkies/pi-hermes-memory to GitHub Packages on every
+# version tag push (e.g. `git tag v0.8.0 && git push origin v0.8.0`).
+# The published version comes from package.json — bump it before tagging.
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  publish:
+    name: Publish to GitHub Packages
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://npm.pkg.github.com
+          scope: "@crunchymonkies"
+
+      - run: npm install
+
+      - name: Type check
+        run: npm run check
+
+      - name: Run tests
+        run: npm test
+
+      - name: Publish
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

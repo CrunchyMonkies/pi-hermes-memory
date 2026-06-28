@@ -1,6 +1,9 @@
 {
-  "name": "pi-hermes-memory",
+  "name": "@crunchymonkies/pi-hermes-memory",
   "version": "0.7.20",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
   "description": "🧠 Persistent memory + 🔍 session search + 🛡️ secret scanning for Pi. Token-aware policy-only memory by default, SQLite FTS5 search, auto-consolidation, procedural skills. 368 tests. Ported from Hermes agent.",
   "type": "module",
   "main": "src/index.ts",
@@ -42,7 +45,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/chandra447/pi-hermes-memory"
+    "url": "https://github.com/CrunchyMonkies/pi-hermes-memory"
   },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": ">=0.74.0"

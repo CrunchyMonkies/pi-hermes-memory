@@ -14,6 +14,8 @@ import { getMemoryStats, searchMemories } from "./sqlite-memory-store.js";
 import type { SqliteMemoryEntry } from "./sqlite-memory-store.js";
 import type { ConsolidationResult, MemoryCategory, MemoryResult } from "../types.js";
 
+export type { MemoryBackendKind } from "../types.js";
+
 export type MaybePromise<T> = T | Promise<T>;
 
 /**

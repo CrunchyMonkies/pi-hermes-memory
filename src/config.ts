@@ -14,6 +14,7 @@ import {
   DEFAULT_CONSOLIDATION_TIMEOUT_MS,
   DEFAULT_FAILURE_INJECTION_MAX_AGE_DAYS,
   DEFAULT_FAILURE_INJECTION_MAX_ENTRIES,
+  DEFAULT_MEMORY_BACKEND,
 } from "./constants.js";
 import { AGENT_ROOT, normalizeConfiguredMemoryDir, normalizeProjectsMemoryDir } from "./paths.js";
 
@@ -56,6 +57,7 @@ const DEFAULT_CONFIG: MemoryConfig = {
   nudgeToolCalls: DEFAULT_NUDGE_TOOL_CALLS,
   projectsMemoryDir: DEFAULT_PROJECTS_MEMORY_DIR,
   sessionSearch: { variant: "legacy" },
+  memoryBackend: DEFAULT_MEMORY_BACKEND,
 };
 
 export const DEFAULT_CONFIG_PATH = path.join(
@@ -134,6 +136,19 @@ export function loadConfig(configPath = DEFAULT_CONFIG_PATH): MemoryConfig {
         if (trimmed.length > 0) config.llmModelOverride = trimmed;
       }
       if (isThinkingLevel(parsed.llmThinkingOverride)) config.llmThinkingOverride = parsed.llmThinkingOverride;
+      if (parsed.memoryBackend === "builtin" || parsed.memoryBackend === "mem0") {
+        config.memoryBackend = parsed.memoryBackend;
+      }
+      if (typeof parsed.mem0 === "object" && parsed.mem0 !== null) {
+        const mem0: NonNullable<MemoryConfig["mem0"]> = {};
+        if (parsed.mem0.mode === "platform" || parsed.mem0.mode === "oss") mem0.mode = parsed.mem0.mode;
+        if (typeof parsed.mem0.apiKey === "string" && parsed.mem0.apiKey.trim()) mem0.apiKey = parsed.mem0.apiKey.trim();
+        if (typeof parsed.mem0.host === "string" && parsed.mem0.host.trim()) mem0.host = parsed.mem0.host.trim();
+        if (typeof parsed.mem0.userId === "string" && parsed.mem0.userId.trim()) mem0.userId = parsed.mem0.userId.trim();
+        if (typeof parsed.mem0.infer === "boolean") mem0.infer = parsed.mem0.infer;
+        if (typeof parsed.mem0.oss === "object" && parsed.mem0.oss !== null) mem0.oss = parsed.mem0.oss;
+        config.mem0 = mem0;
+      }
       if (hasMemoryOverflowStrategy) {
         config.autoConsolidate = config.memoryOverflowStrategy === "auto-consolidate";
       } else if (hasLegacyAutoConsolidate) {

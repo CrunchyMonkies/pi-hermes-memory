@@ -10,6 +10,37 @@ export type SessionSearchVariant = "legacy" | "anchors";
 
 export type ThinkingLevel = "off" | "minimal" | "low" | "medium" | "high" | "xhigh";
 
+/** Which persistence backend stores memory entries. Default: builtin */
+export type MemoryBackendKind = "builtin" | "mem0";
+
+export interface Mem0Config {
+  /**
+   * Deployment mode. "platform" (default) uses the hosted/self-hosted REST API
+   * via MemoryClient; "oss" uses the local `mem0ai/oss` Memory engine.
+   */
+  mode?: "platform" | "oss";
+  /** Mem0 Platform API key. Falls back to the MEM0_API_KEY env var. */
+  apiKey?: string;
+  /**
+   * Platform API host. Default: https://api.mem0.ai. Point this at a
+   * self-hosted Mem0 server to run Platform mode without the hosted service
+   * (the API key then becomes optional).
+   */
+  host?: string;
+  /** Namespace (user_id) memories are stored under. Default: pi-hermes */
+  userId?: string;
+  /**
+   * When false (default), entries are stored verbatim. When true, Mem0's LLM
+   * re-extracts facts from the content before storing.
+   */
+  infer?: boolean;
+  /**
+   * Configuration object passed to the `mem0ai/oss` Memory constructor when
+   * mode is "oss" (vector store, embedder, LLM, history DB, etc.).
+   */
+  oss?: Record<string, unknown>;
+}
+
 export interface SessionSearchConfig {
   /** Session search implementation variant. Default: legacy */
   variant: SessionSearchVariant;
@@ -76,6 +107,10 @@ export interface MemoryConfig {
   nudgeToolCalls: number;
   /** Maximum time in milliseconds for auto-consolidation to complete. Default: 60000 */
   consolidationTimeoutMs: number;
+  /** Persistence backend for memory entries. Default: builtin */
+  memoryBackend?: MemoryBackendKind;
+  /** Mem0 backend configuration (used when memoryBackend is "mem0"). */
+  mem0?: Mem0Config;
 }
 
 export type MemoryCategory =

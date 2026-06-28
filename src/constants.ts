@@ -26,6 +26,13 @@ export const DEFAULT_CONSOLIDATION_TIMEOUT_MS = 60000;
 export const DEFAULT_FAILURE_INJECTION_MAX_AGE_DAYS = 7;
 export const DEFAULT_FAILURE_INJECTION_MAX_ENTRIES = 5;
 
+// ─── Memory backend ───
+export const DEFAULT_MEMORY_BACKEND = "builtin";
+export const DEFAULT_MEM0_MODE = "platform";
+export const DEFAULT_MEM0_HOST = "https://api.mem0.ai";
+export const DEFAULT_MEM0_USER_ID = "pi-hermes";
+export const DEFAULT_MEM0_INFER = false;
+
 // ─── File names ───
 export const MEMORY_FILE = "MEMORY.md";
 export const USER_FILE = "USER.md";
